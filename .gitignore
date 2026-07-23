@@ -2,19 +2,23 @@
 
 __pycache__/
 
+# Node / Vite
+node_modules/
+dist/
+.vite/
 
-# Datasets
+# Datasets & Models
 *.csv
+*.safetensors
+*.pkl
 
 # Logs
 *.log
-
-# ML models
-*.safetensors
-*.pkl
+backend/logs/
 
 # Environment variables
 .env
 *.env
+.env.local
+.env.*.local
 secrets.toml
-

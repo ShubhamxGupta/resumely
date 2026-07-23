@@ -1,89 +1,171 @@
 import React, { useState } from 'react';
-import { Search, Bell, Command, User, LogOut, LogIn } from 'lucide-react';
+import { Search, Command, Bell, LogIn, LogOut } from 'lucide-react';
 import AuthModal from './AuthModal';
+
+const PAGE_META = {
+  dashboard: { label: 'Overview',          desc: 'Executive metrics & recent activity' },
+  scorer:    { label: 'ATS Scorer',         desc: 'Upload and analyze your resume' },
+  history:   { label: 'History',            desc: 'Past evaluations and stored scans' },
+  rewrite:   { label: 'AI Rewriter',        desc: 'Rewrite bullets and generate cover letters' },
+  recruiter: { label: 'Recruiter View',     desc: 'First-impression simulation mode' },
+  resources: { label: 'ATS Guidelines',     desc: 'Best practices and keyword library' },
+  settings:  { label: 'Settings',           desc: 'AI engine and account configuration' },
+};
 
 export default function TopNavbar({ user, activeTab, onOpenCommandPalette, onAuthChange }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
-
-  const getTabTitle = () => {
-    switch (activeTab) {
-      case 'dashboard': return 'Executive Overview';
-      case 'scorer': return 'ATS Resume Analyzer';
-      case 'history': return 'Analysis Vault';
-      case 'resources': return 'ATS Knowledge Matrix';
-      case 'rewrite': return 'AI Resume Rewriter';
-      case 'recruiter': return 'Recruiter Simulation Mode';
-      case 'settings': return 'System Settings';
-      default: return 'Dashboard';
-    }
-  };
+  const meta = PAGE_META[activeTab] || PAGE_META.dashboard;
 
   return (
     <>
-      <header className="h-16 border-b border-slate-800/80 bg-[#090D16]/90 backdrop-blur-md px-8 flex items-center justify-between sticky top-0 z-30">
-        {/* Left Title & Breadcrumbs */}
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">Resumely</span>
-          <span className="text-slate-600">/</span>
-          <h2 className="text-sm font-semibold text-slate-200">{getTabTitle()}</h2>
+      <header
+        className="flex items-center justify-between px-6 h-14 sticky top-0 z-30"
+        style={{
+          background: 'rgba(7, 9, 15, 0.85)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: '1px solid var(--border-subtle)',
+        }}
+      >
+        {/* Left — Breadcrumb */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className="mono hidden sm:inline"
+            style={{ fontSize: '11px', color: 'var(--text-faint)' }}
+          >
+            resumely
+          </span>
+          <span style={{ color: 'var(--border-default)', fontSize: '12px' }}>/</span>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            {meta.label}
+          </span>
+          <span
+            className="hidden md:inline"
+            style={{ fontSize: '12px', color: 'var(--text-muted)' }}
+          >
+            — {meta.desc}
+          </span>
         </div>
 
-        {/* Right Search, Actions & Profile */}
-        <div className="flex items-center gap-4">
-          {/* Command Palette Trigger */}
+        {/* Right — Actions */}
+        <div className="flex items-center gap-2">
+          {/* Search / Command palette trigger */}
           <button
             onClick={onOpenCommandPalette}
-            className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700 text-xs transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all"
+            style={{
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-subtle)',
+              color: 'var(--text-muted)',
+              fontSize: '12px',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'var(--border-default)';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'var(--border-subtle)';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
           >
             <Search className="w-3.5 h-3.5" />
-            <span>Quick Search & Actions...</span>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400 font-mono border border-slate-700">
-              <Command className="w-2.5 h-2.5" /> K
+            <span className="hidden sm:inline" style={{ fontSize: '12px' }}>Search...</span>
+            <kbd
+              className="hidden sm:flex items-center gap-0.5 mono rounded"
+              style={{
+                fontSize: '10px',
+                padding: '1px 5px',
+                background: 'var(--bg-overlay)',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <Command className="w-2.5 h-2.5" />K
             </kbd>
           </button>
 
-          {/* Notifications Button */}
-          <button className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 rounded-lg transition-colors relative">
+          {/* Notifications */}
+          <button
+            className="relative p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--bg-elevated)';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
+            }}
+          >
             <Bell className="w-4 h-4" />
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 absolute top-2 right-2"></span>
+            <span
+              className="absolute rounded-full"
+              style={{
+                width: '6px',
+                height: '6px',
+                top: '8px',
+                right: '8px',
+                background: 'var(--indigo-400)',
+              }}
+            />
           </button>
 
-          {/* User Account Status & Login Card Button */}
-          {user ? (
-            <div className="flex items-center gap-3 pl-3 border-l border-slate-800">
+          {/* Auth */}
+          <div style={{ paddingLeft: '8px', borderLeft: '1px solid var(--border-subtle)' }}>
+            {user ? (
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-mono text-xs font-semibold">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center mono text-xs font-semibold shrink-0"
+                  style={{
+                    background: 'var(--indigo-glow)',
+                    border: '1px solid rgba(99,102,241,0.3)',
+                    color: 'var(--indigo-400)',
+                  }}
+                  title={user.email}
+                >
                   {user.email?.[0]?.toUpperCase()}
                 </div>
-                <span className="text-xs font-medium text-slate-300 hidden md:inline">{user.email}</span>
+                <span
+                  className="hidden md:inline text-xs"
+                  style={{ color: 'var(--text-secondary)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
+                  {user.email}
+                </span>
+                <button
+                  onClick={() => onAuthChange(null)}
+                  className="p-1.5 rounded-lg transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                  title="Sign out"
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'var(--rose-glow)';
+                    e.currentTarget.style.color = 'var(--rose-400)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                  }}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <button
-                onClick={() => onAuthChange(null)}
-                className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                title="Sign Out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="pl-3 border-l border-slate-800">
+            ) : (
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-md shadow-indigo-500/20"
+                className="btn btn-primary"
+                style={{ padding: '6px 14px', fontSize: '12px' }}
               >
                 <LogIn className="w-3.5 h-3.5" />
-                <span>Sign In / Register</span>
+                <span>Sign in</span>
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Auth Modal Card Overlay */}
       {showAuthModal && (
         <AuthModal
           user={user}
-          onAuthChange={(u) => {
+          onAuthChange={u => {
             onAuthChange(u);
             setShowAuthModal(false);
           }}

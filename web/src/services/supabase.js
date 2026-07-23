@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const SUPABASE_URL = 'https://agkytyjwmigamkbjusqr.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFna3l0eWp3bWlnYW1rYmp1c3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3ODAxMDEsImV4cCI6MjEwMDM1NjEwMX0.dOpC0SrscJ8XKdsGFjAHvVtjTQ1ZAgz0k-6RVtLBUhI';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://agkytyjwmigamkbjusqr.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFna3l0eWp3bWlnYW1rYmp1c3FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3ODAxMDEsImV4cCI6MjEwMDM1NjEwMX0.dOpC0SrscJ8XKdsGFjAHvVtjTQ1ZAgz0k-6RVtLBUhI';
 
 export const signIn = async (email, password) => {
   try {

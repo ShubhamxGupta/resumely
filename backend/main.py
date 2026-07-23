@@ -3,82 +3,98 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.core.config import(
-    ALLOWED_ORIGINS, 
-    APP_DESCRIPTION, 
-    APP_TITLE, 
-    APP_VERSION, 
-    SPACY_MODEL_PRIMARY, 
-    SPACY_MODEL_SECONDARY, SENTENCE_TRANSFORMER_MODEL
+from backend.core.config import (
+    ALLOWED_ORIGINS,
+    APP_DESCRIPTION,
+    APP_TITLE,
+    APP_VERSION,
+    LOG_LEVEL,
+    RELOAD,
+    SPACY_MODEL_PRIMARY,
+    SPACY_MODEL_SECONDARY,
+    SENTENCE_TRANSFORMER_MODEL,
 )
 from backend.api.routes import router
 
-logger=logging.getLogger('ats_resume_scorer')
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+)
+logger = logging.getLogger('ats_resume_scorer')
+
 
 @asynccontextmanager
-async def lifespan(app:FastAPI):
-    logger.info('Starting ATS Resume Analyzer API...')
+async def lifespan(app: FastAPI):
+    logger.info('Starting ATS Resume Analyzer API v%s', APP_VERSION)
 
-    logger.info(f'Loading spaCy NLP model: {SPACY_MODEL_PRIMARY}')
+    # ── Load spaCy NLP model ──────────────────────────────────────────────────
+    logger.info('Loading spaCy NLP model: %s', SPACY_MODEL_PRIMARY)
     import spacy
     try:
         app.state.nlp = spacy.load(SPACY_MODEL_PRIMARY)
-        logger.info(f'Loaded {SPACY_MODEL_PRIMARY}')
+        logger.info('Loaded %s', SPACY_MODEL_PRIMARY)
     except OSError:
-        logger.warning(f'{SPACY_MODEL_PRIMARY} not found — falling back to {SPACY_MODEL_SECONDARY}')
+        logger.warning('%s not found — falling back to %s', SPACY_MODEL_PRIMARY, SPACY_MODEL_SECONDARY)
         app.state.nlp = spacy.load(SPACY_MODEL_SECONDARY)
-        logger.info(f'Loaded {SPACY_MODEL_SECONDARY} (fallback)')
+        logger.info('Loaded %s (fallback)', SPACY_MODEL_SECONDARY)
 
-    logger.info(f'Loading SentenceTransformer: {SENTENCE_TRANSFORMER_MODEL}')
+    # ── Load SentenceTransformer ──────────────────────────────────────────────
+    logger.info('Loading SentenceTransformer: %s', SENTENCE_TRANSFORMER_MODEL)
     from sentence_transformers import SentenceTransformer
     app.state.embedder = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
-    logger.info(f'Loaded {SENTENCE_TRANSFORMER_MODEL}')
+    logger.info('Loaded %s', SENTENCE_TRANSFORMER_MODEL)
 
-    logger.info('All models loaded. API is ready to serve requests.')
-
+    logger.info('All models loaded. API is ready.')
     yield
 
-    logger.info('shutting down the api!!')
+    logger.info('ATS Resume Analyzer API shutting down.')
 
-app=FastAPI(
-    title=APP_TITLE, 
-    description=APP_DESCRIPTION, 
-    version=APP_VERSION, 
+
+app = FastAPI(
+    title=APP_TITLE,
+    description=APP_DESCRIPTION,
+    version=APP_VERSION,
     lifespan=lifespan,
     docs_url='/docs',
-    redoc_url='/redoc'
+    redoc_url='/redoc',
 )
 
 app.add_middleware(
-    CORSMiddleware, 
+    CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True, 
-    allow_methods     = ['*'],
-    allow_headers     = ['*'],
-
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
 app.include_router(router)
 
-@app.get('/')
+
+@app.get('/', tags=['Meta'])
 async def root():
+    """API index — lists available endpoints."""
     return {
-        'name':      'ATS Resume Analyzer API',
-        'version':   '2.0.0',
+        'name':    APP_TITLE,
+        'version': APP_VERSION,
         'endpoints': {
-            'POST   /api/v1/analyze-resume': 'Analyze a resume',
-            'GET    /api/v1/history':        'Get user history',
-            'DELETE /api/v1/history/:id':    'Delete a history entry',
-            'GET    /api/v1/health':         'Health check',
-            'POST   /api/v1/generate-pdf':   'Generate PDF report from data',
+            'POST   /api/v1/analyze-resume':         'Analyze a resume file',
+            'GET    /api/v1/history':                'Get user analysis history',
+            'DELETE /api/v1/history/{id}':           'Delete a history entry',
+            'GET    /api/v1/history/{id}/pdf':       'Download PDF for a history entry',
+            'POST   /api/v1/generate-pdf':           'Generate PDF from analysis data',
+            'POST   /api/v1/rewrite-bullet':         'AI-powered bullet rewriter',
+            'POST   /api/v1/generate-cover-letter':  'AI cover letter generator',
+            'GET    /api/v1/health':                 'Health check',
         },
     }
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     import uvicorn
     uvicorn.run(
         'backend.main:app',
-        host    = '0.0.0.0',
-        port    = 8000,
-        reload  = True,    # Auto-restart on code changes (dev only)
+        host   = '0.0.0.0',
+        port   = 8000,
+        reload = RELOAD,   # controlled by RELOAD env var — never hard-coded True in prod
     )

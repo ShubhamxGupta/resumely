@@ -1,39 +1,27 @@
-import os
-import json 
+import json
 import logging
-from typing import Dict
+from typing import Dict, Optional
 
-from groq import Groq
+from backend.services.llm_gateway import get_llm_provider
+from backend.services.offline_parser import fallback_rule_parser
 
-logger=logging.getLogger('ats_resume_scorer')
+logger = logging.getLogger('ats_resume_scorer')
 
-
-GROQ_MODEL='llama-3.3-70b-versatile'
-
-_client=None
-
-def _get_client() -> Groq | None:
-    global _client
-    if _client is None:
-        api_key = os.getenv('GROQ_API_KEY')
-        if not api_key:
-            return None
-        _client = Groq(api_key=api_key)
-    return _client
-
+# ── Prompts ────────────────────────────────────────────────────────────────────
 RESUME_SYSTEM_PROMPT = (
-    "You are a resume parser. Extract information from the resume "
-    "and return ONLY a valid JSON object. No explanation, no markdown."
+    'You are a resume parser. Extract information from the resume '
+    'and return ONLY a valid JSON object. No explanation, no markdown.'
 )
 
-RESUME_USER_PROMPT = """Extract the following from this resume and return as JSON:
+RESUME_USER_PROMPT = """\
+Extract the following from this resume and return as JSON:
 {{
   "name": "full name",
   "email": "email address",
   "phone": "phone number",
   "linkedin": "LinkedIn URL if present, otherwise null",
   "github": "GitHub URL if present, otherwise null",
-  "professional_summary": "the full text of the Summary, Profile, About Me, Objective, or Professional Summary section at the top of the resume. Copy the ENTIRE paragraph exactly as written. If no such section exists, return an empty string.",
+  "professional_summary": "the full text of the Summary, Profile, About Me, Objective, or Professional Summary section. Copy the ENTIRE paragraph exactly as written. If no such section exists, return an empty string.",
   "skills": ["list", "of", "skills"],
   "experience": [
     {{
@@ -74,59 +62,13 @@ Important instructions:
 Resume Text:
 {raw_text}"""
 
-def _call_groq(client:Groq, system_prompt:str, user_prompt:str)->str:
-
-    response=client.chat.completions.create(
-        model=GROQ_MODEL, 
-        messages=[
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': user_prompt}
-        ],
-        temperature=0.0,
-        max_tokens=4096
-    )
-
-    return response.choices[0].message.content.strip()
-
-def _try_parse_json(text: str) -> dict | None:
-
-    # Strip markdown code fences if present
-    cleaned = text.strip()
-    if cleaned.startswith("```"):
-
-        # Remove opening fence (```json or ```)
-        first_newline = cleaned.index("\n") if "\n" in cleaned else len(cleaned)
-        cleaned = cleaned[first_newline + 1:]
-        # Remove closing fence
-        if cleaned.endswith("```"):
-            cleaned = cleaned[:-3]
-        cleaned = cleaned.strip()
-
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        return None
-    
-from backend.services.llm_gateway import get_llm_provider
-from backend.services.offline_parser import fallback_rule_parser
-
-def parse_resume(raw_text: str, provider_name: str = 'groq', api_key: Optional[str] = None) -> Dict:
-    provider = get_llm_provider(provider_name)
-    prompt = RESUME_USER_PROMPT.format(raw_text=raw_text)
-    result = provider.parse_text(RESUME_SYSTEM_PROMPT, prompt, api_key=api_key)
-    if result is not None:
-        return _validate_resume_result(result)
-    
-    logger.info(f"LLM Provider ({provider_name}) parse unavailable. Using intelligent rule-based offline parser.")
-    rule_result = fallback_rule_parser(raw_text)
-    return _validate_resume_result(rule_result)
-
 JD_SYSTEM_PROMPT = (
-    "You are a job description parser. Extract information and "
-    "return ONLY a valid JSON object. No explanation, no markdown."
+    'You are a job description parser. Extract information and '
+    'return ONLY a valid JSON object. No explanation, no markdown.'
 )
 
-JD_USER_PROMPT = """Extract the following from this job description and return as JSON:
+JD_USER_PROMPT = """\
+Extract the following from this job description and return as JSON:
 {{
   "job_title": "",
   "required_skills": ["list of must-have skills"],
@@ -147,87 +89,114 @@ Important instructions:
 Job Description Text:
 {raw_text}"""
 
-def parse_job_description(raw_text: str, provider_name: str = 'groq', api_key: Optional[str] = None) -> Dict:
+
+# ── JSON helpers ───────────────────────────────────────────────────────────────
+def _try_parse_json(text: str) -> Optional[dict]:
+    """Strip markdown fences and parse JSON; returns None on failure."""
+    cleaned = text.strip()
+    if cleaned.startswith('```'):
+        first_newline = cleaned.index('\n') if '\n' in cleaned else len(cleaned)
+        cleaned = cleaned[first_newline + 1:]
+        if cleaned.endswith('```'):
+            cleaned = cleaned[:-3]
+        cleaned = cleaned.strip()
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        return None
+
+
+# ── Public API ─────────────────────────────────────────────────────────────────
+def parse_resume(raw_text: str, provider_name: str = 'groq', api_key: Optional[str] = None) -> Dict:
+    """Parse a resume via the selected LLM provider; falls back to rule-based parser."""
     provider = get_llm_provider(provider_name)
-    prompt = JD_USER_PROMPT.format(raw_text=raw_text)
-    result = provider.parse_text(JD_SYSTEM_PROMPT, prompt, api_key=api_key)
+    prompt   = RESUME_USER_PROMPT.format(raw_text=raw_text)
+    result   = provider.parse_text(RESUME_SYSTEM_PROMPT, prompt, api_key=api_key)
+
+    if result is not None:
+        return _validate_resume_result(result)
+
+    logger.info('LLM provider (%s) unavailable — using offline rule-based parser.', provider_name)
+    return _validate_resume_result(fallback_rule_parser(raw_text))
+
+
+def parse_job_description(raw_text: str, provider_name: str = 'groq', api_key: Optional[str] = None) -> Dict:
+    """Parse a job description via the selected LLM provider; returns safe defaults on failure."""
+    provider = get_llm_provider(provider_name)
+    prompt   = JD_USER_PROMPT.format(raw_text=raw_text)
+    result   = provider.parse_text(JD_SYSTEM_PROMPT, prompt, api_key=api_key)
+
     if result is not None:
         return _validate_jd_result(result)
-    logger.warning(f"LLM Provider ({provider_name}) JD parse unavailable or failed. Returning fallback JD structure.")
+
+    logger.warning('LLM provider (%s) JD parse failed — returning empty JD structure.', provider_name)
     return _validate_jd_result({})
 
-#it will make sure, that the parse json has all the valid fields we expect
-def _validate_jd_result(result: dict) -> dict:
-    
-    defaults = {
-        "job_title": "",
-        "required_skills": [],
-        "preferred_skills": [],
-        "experience_required": "",
-        "education_required": "",
-        "key_responsibilities": [],
-        "keywords": [],
-    }
 
+# ── Validation helpers ─────────────────────────────────────────────────────────
+def _validate_jd_result(result: dict) -> dict:
+    """Ensure all expected JD fields are present and correctly typed."""
+    defaults: Dict = {
+        'job_title':           '',
+        'required_skills':     [],
+        'preferred_skills':    [],
+        'experience_required': '',
+        'education_required':  '',
+        'key_responsibilities':[],
+        'keywords':            [],
+    }
     for key, default in defaults.items():
         if key not in result or result[key] is None:
             result[key] = default
         if isinstance(default, list) and not isinstance(result[key], list):
             result[key] = default
-
     return result
 
 
-#to make sure the parse json has all the valid json fields
 def _validate_resume_result(result: dict) -> dict:
-
-    defaults = {
-        "name": "",
-        "email": None,
-        "phone": None,
-        "linkedin": None,
-        "github": None,
-        "professional_summary": "",
-        "skills": [],
-        "experience": [],
-        "education": [],
-        "certifications": [],
-        "projects": [],
-        "action_verbs": [],
-        "keywords": [],
+    """Ensure all expected resume fields are present and correctly typed."""
+    defaults: Dict = {
+        'name':                 '',
+        'email':                None,
+        'phone':                None,
+        'linkedin':             None,
+        'github':               None,
+        'professional_summary': '',
+        'skills':               [],
+        'experience':           [],
+        'education':            [],
+        'certifications':       [],
+        'projects':             [],
+        'action_verbs':         [],
+        'keywords':             [],
     }
     for key, default in defaults.items():
         if key not in result or result[key] is None:
             result[key] = default
-            
-        # Ensure list fields are actually lists
         if isinstance(default, list) and not isinstance(result[key], list):
             result[key] = default
 
-    #Validate experience entries
-    for exp in result.get("experience", []):
+    # Validate experience entries
+    for exp in result.get('experience', []):
         if not isinstance(exp, dict):
             continue
-        exp.setdefault("job_title", "")
-        exp.setdefault("company", "")
-        exp.setdefault("start_date", "")
-        exp.setdefault("end_date", "")
-        exp.setdefault("duration_months", 0)
-        exp.setdefault("description", "")
-        #Ensure duration_months is an int
+        exp.setdefault('job_title',      '')
+        exp.setdefault('company',        '')
+        exp.setdefault('start_date',     '')
+        exp.setdefault('end_date',       '')
+        exp.setdefault('duration_months', 0)
+        exp.setdefault('description',    '')
         try:
-            exp["duration_months"] = int(exp["duration_months"])
+            exp['duration_months'] = int(exp['duration_months'])
         except (ValueError, TypeError):
-            exp["duration_months"] = 0
+            exp['duration_months'] = 0
 
-    #Validate project entries
-    for proj in result.get("projects", []):
+    # Validate project entries
+    for proj in result.get('projects', []):
         if not isinstance(proj, dict):
             continue
-        proj.setdefault("title", "")
-        proj.setdefault("description", "")
-        proj.setdefault("technologies", [])
+        proj.setdefault('title',        '')
+        proj.setdefault('description',  '')
+        proj.setdefault('technologies', [])
 
     return result
-
-

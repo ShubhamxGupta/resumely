@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, X, Loader2, Sparkles } from 'lucide-react';
 
 export default function FileUploader({ onAnalyze, loading }) {
   const [resumeFile, setResumeFile] = useState(null);
@@ -9,138 +9,196 @@ export default function FileUploader({ onAnalyze, loading }) {
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
+    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
+    else if (e.type === 'dragleave') setDragActive(false);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setResumeFile(e.dataTransfer.files[0]);
-    }
+    if (e.dataTransfer.files?.[0]) setResumeFile(e.dataTransfer.files[0]);
   };
 
   const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setResumeFile(e.target.files[0]);
-    }
+    if (e.target.files?.[0]) setResumeFile(e.target.files[0]);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (resumeFile) {
-      onAnalyze({ resumeFile, jobDescription });
-    }
+    if (resumeFile) onAnalyze({ resumeFile, jobDescription });
   };
 
+  const jdChars = jobDescription.length;
+
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-      {/* Resume File Upload Zone */}
-      <div className="surface-card p-6 flex flex-col justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <FileText className="w-5 h-5 text-emerald-400" />
-            <h2 className="text-base font-semibold text-slate-200">Resume Document</h2>
-            <span className="text-xs text-slate-500 font-mono ml-auto">PDF, DOCX, DOC (Max 5MB)</span>
-          </div>
-
-          <div
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[180px] ${
-              dragActive
-                ? 'border-emerald-500 bg-emerald-500/5'
-                : resumeFile
-                ? 'border-emerald-500/50 bg-slate-900/40'
-                : 'border-slate-700/80 hover:border-slate-600 bg-slate-900/20'
-            }`}
-            onClick={() => document.getElementById('resume-input').click()}
-          >
-            <input
-              id="resume-input"
-              type="file"
-              accept=".pdf,.docx,.doc"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-
-            {resumeFile ? (
-              <div className="flex flex-col items-center gap-2">
-                <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-                <span className="text-sm font-medium text-slate-200">{resumeFile.name}</span>
-                <span className="text-xs text-slate-400 font-mono">
-                  {(resumeFile.size / 1024).toFixed(1)} KB
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setResumeFile(null);
-                  }}
-                  className="text-xs text-rose-400 hover:underline mt-1"
-                >
-                  Remove file
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <Upload className="w-8 h-8 text-slate-400 mb-1" />
-                <span className="text-sm font-medium text-slate-300">
-                  Drag & drop your resume file here
-                </span>
-                <span className="text-xs text-slate-500">or click to browse files</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Target Job Description Zone */}
-      <div className="surface-card p-6 flex flex-col justify-between">
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <FileText className="w-5 h-5 text-blue-400" />
-            <h2 className="text-base font-semibold text-slate-200">Job Description</h2>
-            <span className="text-xs text-slate-500 font-mono ml-auto">Optional Match Target</span>
-          </div>
-
-          <textarea
-            value={jobDescription}
-            onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste target job description text here for keyword and semantic match analysis..."
-            rows={7}
-            className="w-full bg-[#0b1326] border border-slate-700/80 rounded-xl p-4 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500/50 resize-none font-sans"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={!resumeFile || loading}
-          className={`w-full mt-4 py-3.5 px-6 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
-            !resumeFile || loading
-              ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50'
-              : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-lg shadow-emerald-500/20'
-          }`}
+    <form onSubmit={handleSubmit}>
+      <div
+        className="rounded-xl overflow-hidden mb-8"
+        style={{ border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)' }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: '1px solid var(--border-subtle)' }}
         >
-          {loading ? (
-            <>
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Analyzing Resume & Matching Keywords...</span>
-            </>
-          ) : (
-            <>
-              <Upload className="w-4 h-4" />
-              <span>Run ATS Analysis</span>
-            </>
+          <div>
+            <h2 className="section-title">Analyze Your Resume</h2>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+              Upload your resume and optionally paste a job description for keyword matching
+            </p>
+          </div>
+          {resumeFile && (
+            <span className="tag tag-emerald">
+              <CheckCircle2 className="w-3 h-3" />
+              Ready to analyze
+            </span>
           )}
-        </button>
+        </div>
+
+        {/* Body */}
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          {/* Drop Zone */}
+          <div
+            className="p-6"
+            style={{ borderRight: '1px solid var(--border-subtle)' }}
+          >
+            <div className="input-group mb-3">
+              <label className="input-label">Resume Document</label>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                PDF, DOCX, or DOC — max 5 MB
+              </p>
+            </div>
+
+            <div
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => document.getElementById('resume-input').click()}
+              className="rounded-xl flex flex-col items-center justify-center text-center cursor-pointer"
+              style={{
+                minHeight: '180px',
+                border: `2px dashed ${dragActive ? 'var(--emerald-400)' : resumeFile ? 'rgba(16,185,129,0.4)' : 'var(--border-default)'}`,
+                background: dragActive
+                  ? 'var(--emerald-glow)'
+                  : resumeFile
+                  ? 'rgba(16,185,129,0.04)'
+                  : 'rgba(255,255,255,0.02)',
+                transition: 'all 0.2s var(--ease-out)',
+              }}
+            >
+              <input
+                id="resume-input"
+                type="file"
+                accept=".pdf,.docx,.doc"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              {resumeFile ? (
+                <div className="flex flex-col items-center gap-3 px-4">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ background: 'var(--emerald-glow)', border: '1px solid rgba(16,185,129,0.3)' }}
+                  >
+                    <FileText className="w-5 h-5" style={{ color: 'var(--emerald-400)' }} />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {resumeFile.name}
+                    </p>
+                    <p className="mono" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {(resumeFile.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setResumeFile(null); }}
+                    className="flex items-center gap-1.5"
+                    style={{ fontSize: '11px', color: 'var(--rose-400)' }}
+                  >
+                    <X className="w-3 h-3" /> Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3 px-4">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-default)' }}
+                  >
+                    <Upload className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                      Drop your resume here
+                    </p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      or click to browse files
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Job Description */}
+          <div className="p-6 flex flex-col gap-3">
+            <div className="input-group">
+              <label className="input-label flex items-center justify-between">
+                <span>Job Description</span>
+                <span className="mono" style={{ fontSize: '10px', color: 'var(--text-faint)', textTransform: 'none' }}>
+                  Optional — improves keyword matching
+                </span>
+              </label>
+            </div>
+            <textarea
+              value={jobDescription}
+              onChange={e => setJobDescription(e.target.value)}
+              placeholder="Paste the job description here to get a keyword gap analysis and match percentage..."
+              rows={7}
+              className="input flex-1"
+              style={{ resize: 'none', fontSize: '13px', lineHeight: '1.65' }}
+            />
+            <div className="flex items-center justify-between">
+              <span className="mono" style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
+                {jdChars > 0 ? `${jdChars} characters` : 'No job description added'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer CTA */}
+        <div
+          className="px-6 py-4 flex items-center justify-between gap-4"
+          style={{ borderTop: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.015)' }}
+        >
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            {!resumeFile
+              ? 'Upload a resume file to get started'
+              : loading
+              ? 'Running 5-dimensional ATS analysis...'
+              : 'Ready — click to run analysis'}
+          </p>
+          <button
+            type="submit"
+            disabled={!resumeFile || loading}
+            className="btn btn-success"
+            style={{ minWidth: '160px' }}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Analyzing...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                <span>Run ATS Analysis</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </form>
   );

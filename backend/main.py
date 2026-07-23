@@ -1,20 +1,47 @@
+import sys
+import os
+from pathlib import Path
+
+# Add project root and backend dir to sys.path so imports work both when running
+# from project root (`python -m backend.main`) and inside backend directory (`uvicorn main:app`).
+_dir = Path(__file__).resolve().parent
+_root = _dir.parent
+if str(_root) not in sys.path:
+    sys.path.insert(0, str(_root))
+if str(_dir) not in sys.path:
+    sys.path.insert(0, str(_dir))
+
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.core.config import (
-    ALLOWED_ORIGINS,
-    APP_DESCRIPTION,
-    APP_TITLE,
-    APP_VERSION,
-    LOG_LEVEL,
-    RELOAD,
-    SPACY_MODEL_PRIMARY,
-    SPACY_MODEL_SECONDARY,
-    SENTENCE_TRANSFORMER_MODEL,
-)
-from backend.api.routes import router
+try:
+    from backend.core.config import (
+        ALLOWED_ORIGINS,
+        APP_DESCRIPTION,
+        APP_TITLE,
+        APP_VERSION,
+        LOG_LEVEL,
+        RELOAD,
+        SPACY_MODEL_PRIMARY,
+        SPACY_MODEL_SECONDARY,
+        SENTENCE_TRANSFORMER_MODEL,
+    )
+    from backend.api.routes import router
+except ImportError:
+    from core.config import (
+        ALLOWED_ORIGINS,
+        APP_DESCRIPTION,
+        APP_TITLE,
+        APP_VERSION,
+        LOG_LEVEL,
+        RELOAD,
+        SPACY_MODEL_PRIMARY,
+        SPACY_MODEL_SECONDARY,
+        SENTENCE_TRANSFORMER_MODEL,
+    )
+    from api.routes import router
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -93,8 +120,8 @@ async def root():
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(
-        'backend.main:app',
+        'main:app',
         host   = '0.0.0.0',
         port   = 8000,
-        reload = RELOAD,   # controlled by RELOAD env var — never hard-coded True in prod
+        reload = RELOAD,
     )

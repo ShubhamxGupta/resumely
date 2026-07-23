@@ -6,23 +6,38 @@ import pdfplumber
 from docx import Document
 import PyPDF2
 
-from backend.utils.file_utils import (
-    FileParsingError,       # authoritative definitions live in file_utils
-    TextExtractionError,
-    FileUploadError,
-    log_error,
-    log_warning,
-    log_info,
-    with_fallback,
-)
-from backend.core.config import (
-    MAX_FILE_SIZE_BYTES,
-    MAX_FILE_SIZE_MB,
-    SUPPORTED_MIME_TYPES,
-)
-
-# NOTE: FileValidationError is also defined in file_utils — import it from there.
-from backend.utils.file_utils import ATSBaseError as _ATSBaseError
+try:
+    from backend.utils.file_utils import (
+        FileParsingError,
+        TextExtractionError,
+        FileUploadError,
+        log_error,
+        log_warning,
+        log_info,
+        with_fallback,
+        ATSBaseError as _ATSBaseError,
+    )
+    from backend.core.config import (
+        MAX_FILE_SIZE_BYTES,
+        MAX_FILE_SIZE_MB,
+        SUPPORTED_MIME_TYPES,
+    )
+except ImportError:
+    from utils.file_utils import (
+        FileParsingError,
+        TextExtractionError,
+        FileUploadError,
+        log_error,
+        log_warning,
+        log_info,
+        with_fallback,
+        ATSBaseError as _ATSBaseError,
+    )
+    from core.config import (
+        MAX_FILE_SIZE_BYTES,
+        MAX_FILE_SIZE_MB,
+        SUPPORTED_MIME_TYPES,
+    )
 
 
 class FileValidationError(_ATSBaseError):

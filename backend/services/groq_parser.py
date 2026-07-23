@@ -2,8 +2,12 @@ import json
 import logging
 from typing import Dict, Optional
 
-from backend.services.llm_gateway import get_llm_provider
-from backend.services.offline_parser import fallback_rule_parser
+try:
+    from backend.services.llm_gateway import get_llm_provider
+    from backend.services.offline_parser import fallback_rule_parser
+except ImportError:
+    from services.llm_gateway import get_llm_provider
+    from services.offline_parser import fallback_rule_parser
 
 logger = logging.getLogger('ats_resume_scorer')
 

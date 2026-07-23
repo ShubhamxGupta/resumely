@@ -4,29 +4,54 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import Response
 
-from backend.api.auth import get_current_user
-from backend.database.supabase_db import (
-    delete_analysis,
-    get_user_history,
-    save_analysis,
-)
-from backend.models.schemas import AnalysisResponse, ComponentScores, JDComparison, SkillValidationDetails
-from backend.services.groq_parser import parse_resume, parse_job_description
-from backend.services.jd_matcher import compare_resume_with_jd
-from backend.services.llm_gateway import (
-    get_llm_provider,
-    BULLET_SYSTEM_PROMPT,
-    COVER_LETTER_SYSTEM_PROMPT,
-)
-from backend.services.report_generator import generate_html_reports
-from backend.services.pdf_export import generate_combined_pdf
-from backend.services.resume_analyzer import analyze_full_resume
-from backend.services.resume_parser import FileParsingError, FileValidationError, parse_resume_file
-from backend.utils.file_utils import (
-    get_default_grammar_results,
-    get_default_location_results,
-    get_default_skill_validation_results,
-)
+try:
+    from backend.api.auth import get_current_user
+    from backend.database.supabase_db import (
+        delete_analysis,
+        get_user_history,
+        save_analysis,
+    )
+    from backend.models.schemas import AnalysisResponse, ComponentScores, JDComparison, SkillValidationDetails
+    from backend.services.groq_parser import parse_resume, parse_job_description
+    from backend.services.jd_matcher import compare_resume_with_jd
+    from backend.services.llm_gateway import (
+        get_llm_provider,
+        BULLET_SYSTEM_PROMPT,
+        COVER_LETTER_SYSTEM_PROMPT,
+    )
+    from backend.services.report_generator import generate_html_reports
+    from backend.services.pdf_export import generate_combined_pdf
+    from backend.services.resume_analyzer import analyze_full_resume
+    from backend.services.resume_parser import FileParsingError, FileValidationError, parse_resume_file
+    from backend.utils.file_utils import (
+        get_default_grammar_results,
+        get_default_location_results,
+        get_default_skill_validation_results,
+    )
+except ImportError:
+    from api.auth import get_current_user
+    from database.supabase_db import (
+        delete_analysis,
+        get_user_history,
+        save_analysis,
+    )
+    from models.schemas import AnalysisResponse, ComponentScores, JDComparison, SkillValidationDetails
+    from services.groq_parser import parse_resume, parse_job_description
+    from services.jd_matcher import compare_resume_with_jd
+    from services.llm_gateway import (
+        get_llm_provider,
+        BULLET_SYSTEM_PROMPT,
+        COVER_LETTER_SYSTEM_PROMPT,
+    )
+    from services.report_generator import generate_html_reports
+    from services.pdf_export import generate_combined_pdf
+    from services.resume_analyzer import analyze_full_resume
+    from services.resume_parser import FileParsingError, FileValidationError, parse_resume_file
+    from utils.file_utils import (
+        get_default_grammar_results,
+        get_default_location_results,
+        get_default_skill_validation_results,
+    )
 
 logger = logging.getLogger('ats_resume_scorer')
 

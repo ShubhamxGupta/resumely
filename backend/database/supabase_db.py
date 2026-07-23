@@ -4,7 +4,10 @@ import json
 from datetime import datetime, timezone
 from typing import List, Optional, Dict
 
-from backend.core.config import SUPABASE_URL, SUPABASE_KEY, HTTP_TIMEOUT, HTTP_MAX_CONNS
+try:
+    from backend.core.config import SUPABASE_URL, SUPABASE_KEY, HTTP_TIMEOUT, HTTP_MAX_CONNS
+except ImportError:
+    from core.config import SUPABASE_URL, SUPABASE_KEY, HTTP_TIMEOUT, HTTP_MAX_CONNS
 
 logger = logging.getLogger('ats_resume_scorer')
 

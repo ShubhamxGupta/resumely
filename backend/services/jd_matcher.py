@@ -5,7 +5,10 @@ import spacy
 from sentence_transformers import SentenceTransformer
 from rapidfuzz import fuzz
 
-from backend.utils.matching import fuzzy_match_keywords, normalize_skill
+try:
+    from backend.utils.matching import fuzzy_match_keywords, normalize_skill
+except ImportError:
+    from utils.matching import fuzzy_match_keywords, normalize_skill
 
 
 def calculate_semantic_similarity(

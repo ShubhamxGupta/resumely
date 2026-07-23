@@ -68,9 +68,19 @@ async def lifespan(app: FastAPI):
 
     # ── Load SentenceTransformer ──────────────────────────────────────────────
     logger.info('Loading SentenceTransformer: %s', SENTENCE_TRANSFORMER_MODEL)
-    from sentence_transformers import SentenceTransformer
-    app.state.embedder = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
-    logger.info('Loaded %s', SENTENCE_TRANSFORMER_MODEL)
+    try:
+        import torch
+        torch.set_num_threads(1)  # Limit PyTorch memory & CPU thread allocation on 512MB instances
+    except ImportError:
+        pass
+
+    try:
+        from sentence_transformers import SentenceTransformer
+        app.state.embedder = SentenceTransformer(SENTENCE_TRANSFORMER_MODEL)
+        logger.info('Loaded %s', SENTENCE_TRANSFORMER_MODEL)
+    except Exception as exc:
+        logger.warning('Failed to load SentenceTransformer (%s). Semantic matching fallback enabled.', exc)
+        app.state.embedder = None
 
     logger.info('All models loaded. API is ready.')
     yield

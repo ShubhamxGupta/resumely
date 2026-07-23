@@ -2,7 +2,7 @@ services:
   - type: web
     name: resumely-backend
     env: python
-    buildCommand: "pip install -r requirements.txt && python -m spacy download en_core_web_md"
+    buildCommand: "pip install -r requirements.txt && python -m spacy download en_core_web_sm"
     startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: PYTHON_VERSION
@@ -17,3 +17,5 @@ services:
         sync: false
       - key: EXTRA_ALLOWED_ORIGINS
         sync: false
+      - key: PORT
+        value: 8000

@@ -1,4 +1,4 @@
-so yeah#what is specifically wrong in my resume?
+# what is specifically wrong in my resume?
 
 import re
 from typing import List, Dict, Any, Optional
@@ -404,6 +404,32 @@ def analyze_issues(
                 "Full-stack developer with 2+ years of experience building scalable "
                 "web applications using React, Node.js, and AWS. Passionate about "
                 "clean architecture and performance optimization."
+            ),
+        ))
+
+    # 11. Metric Quantification & Numbers Density Check
+    numbers_and_metrics = re.findall(r'\b\d+(?:[\.,]\d+)?%?|\$\d+|\b\d+\+\b', resume_text)
+    if len(numbers_and_metrics) < 3:
+        detected.append(IssueDetail(
+            issue_title="Low Quantified Achievements (Missing Numbers & Metrics)",
+            severity_level="Medium",
+            ats_impact="Medium",
+            explanation=(
+                "Fewer than 3 quantified metrics (percentages, dollar amounts, scale, or user counts) "
+                "were detected in your resume. Resumes with measurable achievements rank significantly higher."
+            ),
+            where_it_appears="Work Experience / Bullet points",
+            how_to_fix=(
+                "Add concrete metrics to your bullet points (e.g. 'Improved speed by 35%', 'Managed $5K budget', 'Scaled app to 10K active users')."
+            ),
+            action_items=[
+                "Identify bullet points with passive descriptions and add numbers",
+                "Include percentages, user scale, revenue, or latency improvements",
+                "Use numbers for team size, project duration, or transaction volume",
+            ],
+            example_improvement=(
+                "Before: Developed user dashboard\n"
+                "After: Developed responsive user dashboard used by 12,000+ daily active users, reducing load time by 40%"
             ),
         ))
 

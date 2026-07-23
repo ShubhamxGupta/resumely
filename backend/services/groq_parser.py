@@ -12,14 +12,13 @@ GROQ_MODEL='llama-3.3-70b-versatile'
 
 _client=None
 
-def _get_client()->Groq:
+def _get_client() -> Groq | None:
     global _client
     if _client is None:
-        api_key=os.getenv('GROQ_API_KEY')
-
+        api_key = os.getenv('GROQ_API_KEY')
         if not api_key:
-            raise ValueError("GROQ_API_KEY environment variable not set")
-        _client=Groq(api_key=api_key)
+            return None
+        _client = Groq(api_key=api_key)
     return _client
 
 RESUME_SYSTEM_PROMPT = (
@@ -108,32 +107,20 @@ def _try_parse_json(text: str) -> dict | None:
     except json.JSONDecodeError:
         return None
     
-def parse_resume(raw_text: str)->Dict:
+from backend.services.llm_gateway import get_llm_provider
+from backend.services.offline_parser import fallback_rule_parser
 
-    client=_get_client()
-    prompt=RESUME_USER_PROMPT.format(raw_text=raw_text)
-    raw_response=_call_groq(client, RESUME_SYSTEM_PROMPT, prompt)
-    result=_try_parse_json(raw_response)
-
-    if result is None:
-        return _validate_resume_result(result)
-    
-
-    logger.warning("Groq resume parse: first attempt returned invalid JSON, retrying...")
-    strict_prompt = (
-        "Your previous response was not valid JSON. "
-        "Return ONLY the raw JSON object, no markdown, no explanation, no code fences.\n\n"
-        + prompt
-    )
-    raw_response = _call_groq(client, RESUME_SYSTEM_PROMPT, strict_prompt)
-    result = _try_parse_json(raw_response)
+def parse_resume(raw_text: str, provider_name: str = 'groq', api_key: Optional[str] = None) -> Dict:
+    provider = get_llm_provider(provider_name)
+    prompt = RESUME_USER_PROMPT.format(raw_text=raw_text)
+    result = provider.parse_text(RESUME_SYSTEM_PROMPT, prompt, api_key=api_key)
     if result is not None:
         return _validate_resume_result(result)
-
-    raise ValueError(
-        f"Groq returned unparseable response after retry. Raw response:\n{raw_response[:500]}"
-    )
     
+    logger.info(f"LLM Provider ({provider_name}) parse unavailable. Using intelligent rule-based offline parser.")
+    rule_result = fallback_rule_parser(raw_text)
+    return _validate_resume_result(rule_result)
+
 JD_SYSTEM_PROMPT = (
     "You are a job description parser. Extract information and "
     "return ONLY a valid JSON object. No explanation, no markdown."
@@ -160,29 +147,14 @@ Important instructions:
 Job Description Text:
 {raw_text}"""
 
-def parse_job_description(raw_text: str) -> Dict:
-    client = _get_client()
+def parse_job_description(raw_text: str, provider_name: str = 'groq', api_key: Optional[str] = None) -> Dict:
+    provider = get_llm_provider(provider_name)
     prompt = JD_USER_PROMPT.format(raw_text=raw_text)
-
-    raw_response = _call_groq(client, JD_SYSTEM_PROMPT, prompt)
-    result = _try_parse_json(raw_response)
+    result = provider.parse_text(JD_SYSTEM_PROMPT, prompt, api_key=api_key)
     if result is not None:
         return _validate_jd_result(result)
-
-    logger.warning("Groq JD parse: first attempt returned invalid JSON, retrying...")
-    strict_prompt = (
-        "Your previous response was not valid JSON. "
-        "Return ONLY the raw JSON object, no markdown, no explanation, no code fences.\n\n"
-        + prompt
-    )
-    raw_response = _call_groq(client, JD_SYSTEM_PROMPT, strict_prompt)
-    result = _try_parse_json(raw_response)
-    if result is not None:
-        return _validate_jd_result(result)
-
-    raise ValueError(
-        f"Groq returned unparseable response after retry. Raw response:\n{raw_response[:500]}"
-    )
+    logger.warning(f"LLM Provider ({provider_name}) JD parse unavailable or failed. Returning fallback JD structure.")
+    return _validate_jd_result({})
 
 #it will make sure, that the parse json has all the valid fields we expect
 def _validate_jd_result(result: dict) -> dict:

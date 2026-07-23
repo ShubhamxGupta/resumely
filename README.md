@@ -1,102 +1,82 @@
-# ATS Resume Scorer
+# Resumely — AI-Powered ATS Resume Analyzer
 
-A web app that scores how well a resume matches a job description and returns actionable feedback. Built with FastAPI + Streamlit, using spaCy and Sentence Transformers for NLP and the Groq API for LLM-generated suggestions.
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.32+-FF4B4B.svg?style=flat&logo=streamlit)](https://streamlit.io/)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?style=flat&logo=python)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## What it does
+Resumely is a production-grade, open-source Applicant Tracking System (ATS) resume scorer and optimization platform. It evaluates resumes against job descriptions, computes multi-dimensional compatibility scores, identifies missing keywords, validates skills against work history, and provides actionable recommendations.
 
-1. Upload a resume (PDF / DOC / DOCX) and paste a job description.
-2. The backend parses the resume, extracts skills and experience, and compares them to the JD using semantic similarity.
-3. You get an ATS score, a breakdown by category (formatting, keywords, content, skill validation, ATS compatibility), and LLM-written suggestions for what to improve.
-4. Past analyses are saved to your account so you can revisit them.
+---
 
-## Tech stack
+## 🌟 Key Features
 
-- **Frontend:** Streamlit
-- **Backend:** FastAPI (Python)
-- **NLP:** spaCy (`en_core_web_md`), Sentence Transformers (`all-MiniLM-L6-v2`)
-- **LLM:** Groq API (Llama 3)
-- **Auth + Database:** Supabase (email/password and Google OAuth)
-- **PDF report export:** WeasyPrint + Jinja2
+- **Hybrid NLP Execution**: Combines local CPU-optimized NLP (`spaCy` + `Sentence Transformers`) for instant vector similarity scoring with optional multi-LLM qualitative analysis.
+- **Bring Your Own Key (BYOK) Multi-LLM Gateway**: Connect **Groq** (`llama-3.3-70b`), **OpenAI** (`gpt-4o-mini`), **Google Gemini** (`gemini-1.5-flash`), **Anthropic Claude** (`claude-3-5-sonnet`), or run 100% **Offline**.
+- **Deterministic Offline Fallback**: Operates with 100% uptime even without internet access or API keys using `offline_parser.py`.
+- **Zero-Storage Privacy Policy**: Custom third-party API keys are processed strictly in memory and NEVER saved to database tables or application logs.
+- **Dual PDF Export**: Generates clean downloadable PDF reports with automatic ReportLab fallback for Windows systems.
 
-## Project structure
+---
 
-```md
-ATS_SCORER/
-├── backend/ FastAPI app, NLP services, API routes
-├── frontend/ Streamlit app, views, components
-├── jupyter notebooks/ Research and dataset prep (not used at runtime)
-├── ml model/ Exported ML artifacts
-├── requirements.txt Combined backend + frontend dependencies
-└── .env.example Template for environment variables
+## 🏗️ Architecture Overview
+
+```mermaid
++--------------------------+        +--------------------------+        +--------------------------+
+|    Streamlit Frontend    | -----> |     FastAPI Backend      | -----> |   Supabase PostgreSQL    |
+|   (Port 8501 / Web UI)   |        |   (Port 8000 / Engine)   |        |  (Auth & Analysis History)|
++--------------------------+        +--------------------------+        +--------------------------+
 ```
 
-## Setup
+---
 
-### 1. Clone and create a virtual environment
+## 📚 Technical Documentation Index
 
-```bash
-git clone <repo-url>
-cd ATS_SCORER
+All engineering specifications, decision records, and technical handbooks are stored in the [`docs/`](file:///d:/Coding/resumely/docs) directory:
+
+- 📋 **[Product Requirements Document (PRD)](file:///d:/Coding/resumely/docs/prd.md)**: Product vision, user personas, functional/non-functional requirements.
+- 🏛️ **[System Architecture Specification](file:///d:/Coding/resumely/docs/architecture.md)**: Logical, physical, and request sequence diagrams.
+- 📑 **[Architectural Decision Records (ADRs)](file:///d:/Coding/resumely/docs/decisions.md)**: Key technical decisions, trade-offs, and constraints.
+- 🎨 **[Design System Specification](file:///d:/Coding/resumely/docs/design.md)**: HSL design tokens, component behaviors, and WCAG accessibility rules.
+- 🤖 **[Multi-LLM Gateway Specification](file:///d:/Coding/resumely/docs/LLM_GATEWAY.md)**: Dynamic LLM provider adapter architecture.
+- 🧠 **[Offline Engine & NLP Specification](file:///d:/Coding/resumely/docs/OFFLINE_ENGINE.md)**: spaCy entity recognition and Sentence Transformer embeddings.
+- 📊 **[Scoring Engine Specification](file:///d:/Coding/resumely/docs/SCORING_ENGINE.md)**: Multi-dimensional scoring formulas and weight matrices.
+- 🔒 **[Security Specification](file:///d:/Coding/resumely/docs/SECURITY.md)**: Threat model, zero-storage key policy, and JWT auth.
+- 📈 **[Scalability & Performance Analysis](file:///d:/Coding/resumely/docs/SCALABILITY.md)**: 100 to 10,000 user scaling roadmap.
+- 🗺️ **[Engineering Roadmap](file:///d:/Coding/resumely/docs/phases.md)**: Completed features and future stretch goals.
+- 📖 **[Developer Knowledge Base](file:///d:/Coding/resumely/docs/memory.md)**: Setup, directory layout, and debugging guide.
+- 📘 **[Engineering Handbook](file:///d:/Coding/resumely/docs/rules.md)**: Coding standards, PEP 8 rules, and Git workflow.
+- 🏆 **[Documentation & Architectural Review Report](file:///d:/Coding/resumely/docs/REVIEW_REPORT.md)**: System review and maturity scores.
+
+---
+
+## 🚀 Quickstart Guide
+
+### Prerequisites
+
+- Python 3.10+ (64-bit)
+- Git
+
+### Installation & Setup
+
+```powershell
+# 1. Clone repository
+git clone https://github.com/your-org/resumely.git
+cd resumely
+
+# 2. Setup Virtual Environment
 python -m venv venv
-source venv/bin/activate         # Windows: venv\Scripts\activate
-```
+.\venv\Scripts\activate
 
-### 2. Install dependencies
-
-```bash
+# 3. Install Dependencies
 pip install -r requirements.txt
 python -m spacy download en_core_web_md
-```
 
-WeasyPrint needs system libraries on Linux:
+# 4. Launch Backend (Terminal 1)
+python -c "import uvicorn; from backend.main import app; uvicorn.run(app, host='127.0.0.1', port=8000)"
 
-```bash
-# Fedora
-sudo dnf install -y cairo pango gdk-pixbuf2 libffi
-
-# Debian / Ubuntu
-sudo apt install -y libcairo2 libpango-1.0-0 libpangoft2-1.0-0 libffi-dev
-```
-
-### 3. Configure environment variables
-
-Copy the template and fill in your keys:
-
-```bash
-cp .env.example .env
-```
-
-You need:
-
-- A **Supabase** project — grab `SUPABASE_URL`, `SUPABASE_KEY` (service role), and `SUPABASE_ANON_KEY` from Project Settings → API.
-- A **Groq** API key from [console.groq.com](https://console.groq.com).
-- (Optional) Google OAuth set up in the Supabase dashboard if you want Google sign-in.
-
-The Streamlit frontend also reads Supabase config from `frontend/.streamlit/secrets.toml`. Copy `secrets.toml.example` to `secrets.toml` and fill it in.
-
-### 4. Run the backend
-
-From the project root:
-
-```bash
-uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-The API is now at `http://localhost:8000`.
-
-### 5. Run the frontend
-
-In a new terminal (with the venv activated):
-
-```bash
+# 5. Launch Frontend (Terminal 2)
 streamlit run frontend/streamlit_app.py
 ```
 
-The app opens at `http://localhost:8501`.
-
-## Notes for students
-
-- **Never commit `.env` or `secrets.toml`** — they hold API keys. Both are in `.gitignore`; check before you push.
-- The first run downloads the Sentence Transformer model (~80 MB). It's cached afterwards.
-- If you don't have a Groq key yet, the scoring still works — only the LLM suggestions section will be empty.
-- `jupyter notebooks/` and `ml model/` are for experimentation and aren't required to run the app.
+Open [http://localhost:8501](http://localhost:8501) in your web browser to start analyzing resumes!

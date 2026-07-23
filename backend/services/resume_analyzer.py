@@ -13,13 +13,15 @@ def analyze_full_resume(
     nlp: spacy.Language,
     embedder: SentenceTransformer,
     job_description: Optional[str] = None,
+    provider_name: str = 'groq',
+    api_key: Optional[str] = None,
 ) -> Dict:
     import logging
     logger = logging.getLogger('ats_resume_scorer')
-    parsed_resume = parse_resume(resume_text)
-    logger.info(f"Groq parsed summary: {parsed_resume.get('professional_summary', '')[:100]!r}")
-    logger.info(f"Groq parsed skills count: {len(parsed_resume.get('skills', []))}")
-    logger.info(f"Groq parsed experience count: {len(parsed_resume.get('experience', []))}")
+    parsed_resume = parse_resume(resume_text, provider_name=provider_name, api_key=api_key)
+    logger.info(f"LLM parsed summary ({provider_name}): {parsed_resume.get('professional_summary', '')[:100]!r}")
+    logger.info(f"LLM parsed skills count: {len(parsed_resume.get('skills', []))}")
+    logger.info(f"LLM parsed experience count: {len(parsed_resume.get('experience', []))}")
 
     skills          = parsed_resume.get('skills', [])
     projects        = parsed_resume.get('projects', [])
@@ -49,7 +51,7 @@ def analyze_full_resume(
     jd_comparison_result = None
     jd_keywords = None
     if job_description and job_description.strip():
-        parsed_jd = parse_job_description(job_description.strip())
+        parsed_jd = parse_job_description(job_description.strip(), provider_name=provider_name, api_key=api_key)
         jd_keywords = list(set(
             parsed_jd.get('keywords', []) +
             parsed_jd.get('required_skills', []) +

@@ -29,10 +29,11 @@ async def analyze_resume(
 ):
     warnings: List[str] = []
 
-
     nlp      = request.app.state.nlp
     embedder = request.app.state.embedder
 
+    provider_name = request.headers.get('X-LLM-Provider', 'groq')
+    custom_api_key = request.headers.get('X-LLM-API-Key', None)
 
     try:
         file_bytes = await resume.read()
@@ -62,7 +63,9 @@ async def analyze_resume(
             resume_text=resume_text,
             nlp=nlp,
             embedder=embedder,
-            job_description=job_description
+            job_description=job_description,
+            provider_name=provider_name,
+            api_key=custom_api_key,
         )
     except Exception as exc:
         logger.error(f'Full analysis pipeline failed: {exc}')
@@ -171,7 +174,7 @@ async def generate_pdf(
 
     try:
         html_docs = generate_html_reports(data.model_dump())
-        pdf_bytes = generate_combined_pdf(html_docs)
+        pdf_bytes = generate_combined_pdf(html_docs, data=data.model_dump())
 
         return Response(
             content=pdf_bytes,
@@ -203,7 +206,7 @@ async def generate_history_pdf(
 
     try:
         html_docs = generate_html_reports(analysis_data)
-        pdf_bytes = generate_combined_pdf(html_docs)
+        pdf_bytes = generate_combined_pdf(html_docs, data=analysis_data)
 
         return Response(
             content=pdf_bytes,

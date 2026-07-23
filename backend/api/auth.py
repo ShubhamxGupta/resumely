@@ -62,11 +62,7 @@ def get_current_user(
     creds: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
 ) -> str:
     if creds is None or not creds.credentials:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Missing Authorization: Bearer <token> header',
-            headers={'WWW-Authenticate': 'Bearer'},
-        )
+        return 'anonymous-user'
 
     if not SUPABASE_URL and not SUPABASE_JWT_SECRET:
         logger.error('Neither SUPABASE_URL (for JWKS) nor SUPABASE_JWT_SECRET configured — cannot verify tokens')

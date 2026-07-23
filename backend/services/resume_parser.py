@@ -41,18 +41,37 @@ def validate_file(file_data:bytes, filename:str)->Tuple[bool, str, Optional[str]
         return False, 'uploade file is empty...please check the file you have uploaded and try again'
     
     try:
-        mime_type=magic.from_buffer(file_data, mime=True)
+        mime_type = magic.from_buffer(file_data, mime=True)
     except Exception as e:
-        return False, f"error deteminin the file type : {e}", None
+        import mimetypes
+        guess, _ = mimetypes.guess_type(filename)
+        if guess:
+            mime_type = guess
+        elif filename.lower().endswith('.pdf'):
+            mime_type = 'application/pdf'
+        elif filename.lower().endswith('.docx'):
+            mime_type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        elif filename.lower().endswith('.doc'):
+            mime_type = 'application/msword'
+        else:
+            return False, f"error determining the file type: {e}", None
     
     if mime_type not in SUPPORTED_MIME_TYPES:
-        supported=', '.join(SUPPORTED_MIME_TYPES.keys()).upper()
-        return False, (
-            f'Unsupported file type: {mime_type}. '
-            f'Please upload one of: {supported}.'
-        ), None
-    
-    
+        # Fallback check by extension if mime_type was slightly off
+        ext = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        ext_map = {
+            '.pdf': 'application/pdf',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.doc': 'application/msword'
+        }
+        if ext in ext_map:
+            mime_type = ext_map[ext]
+        else:
+            supported = ', '.join(SUPPORTED_MIME_TYPES.keys()).upper()
+            return False, (
+                f'Unsupported file type: {mime_type}. '
+                f'Please upload one of: {supported}.'
+            ), None
 
     return True, '', SUPPORTED_MIME_TYPES[mime_type]
 

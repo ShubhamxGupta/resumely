@@ -1,7 +1,18 @@
-import re
-import spacy
-import numpy as np
-from sentence_transformers import SentenceTransformer
+try:
+    import spacy
+except ImportError:
+    spacy = None
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    SentenceTransformer = None
+
 from typing import Dict, List, Optional, Tuple
 
 try:
@@ -29,13 +40,14 @@ def _tier_score(n: float, tiers: list) -> float:
 
 
 # ── Location / privacy detection ───────────────────────────────────────────────
-def detect_location_info(text: str, nlp: spacy.Language) -> Dict:
+def detect_location_info(text: str, nlp: Optional[Any] = None) -> Dict:
     locations = []
 
-    doc = nlp(text)
-    for ent in doc.ents:
-        if ent.label_ in ['GPE', 'LOC']:
-            locations.append({'text': ent.text, 'type': ent.label_.lower(), 'start': ent.start_char})
+    if nlp is not None:
+        doc = nlp(text)
+        for ent in doc.ents:
+            if ent.label_ in ['GPE', 'LOC']:
+                locations.append({'text': ent.text, 'type': ent.label_.lower(), 'start': ent.start_char})
 
     for match in re.finditer(STREET_ADDRESS_PATTERN, text, re.IGNORECASE):
         locations.append({'text': match.group(), 'type': 'address', 'start': match.start()})

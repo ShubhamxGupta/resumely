@@ -57,14 +57,23 @@ async def lifespan(app: FastAPI):
 
     # ── Load spaCy NLP model ──────────────────────────────────────────────────
     logger.info('Loading spaCy NLP model: %s', SPACY_MODEL_PRIMARY)
-    import spacy
+    app.state.nlp = None
     try:
-        app.state.nlp = spacy.load(SPACY_MODEL_PRIMARY)
-        logger.info('Loaded %s', SPACY_MODEL_PRIMARY)
-    except OSError:
-        logger.warning('%s not found — falling back to %s', SPACY_MODEL_PRIMARY, SPACY_MODEL_SECONDARY)
-        app.state.nlp = spacy.load(SPACY_MODEL_SECONDARY)
-        logger.info('Loaded %s (fallback)', SPACY_MODEL_SECONDARY)
+        import spacy
+        try:
+            app.state.nlp = spacy.load(SPACY_MODEL_PRIMARY)
+            logger.info('Loaded %s', SPACY_MODEL_PRIMARY)
+        except Exception as exc1:
+            logger.warning('%s load failed (%s) — trying secondary model %s', SPACY_MODEL_PRIMARY, exc1, SPACY_MODEL_SECONDARY)
+            try:
+                app.state.nlp = spacy.load(SPACY_MODEL_SECONDARY)
+                logger.info('Loaded %s (secondary fallback)', SPACY_MODEL_SECONDARY)
+            except Exception as exc2:
+                logger.warning('Secondary spaCy model %s unavailable (%s). Fallback NLP enabled.', SPACY_MODEL_SECONDARY, exc2)
+                app.state.nlp = None
+    except Exception as exc:
+        logger.warning('spaCy library unavailable (%s). Fallback NLP enabled.', exc)
+        app.state.nlp = None
 
     # ── Load SentenceTransformer ──────────────────────────────────────────────
     logger.info('Loading SentenceTransformer: %s', SENTENCE_TRANSFORMER_MODEL)

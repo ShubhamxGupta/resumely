@@ -38,19 +38,25 @@ def identify_missing_keywords(
 
 
 def analyze_skills_gap(
-    resume_skills: List[str], jd_text: str, nlp: spacy.Language
+    resume_skills: List[str], jd_text: str, nlp: Optional[Any] = None
 ) -> List[str]:
-    doc       = nlp(jd_text[:5000])
     jd_skills = set()
 
-    for ent in doc.ents:
-        if ent.label_ in ['PRODUCT', 'ORG', 'LANGUAGE']:
-            jd_skills.add(ent.text.lower())
+    if nlp is not None:
+        doc = nlp(jd_text[:5000])
+        for ent in doc.ents:
+            if ent.label_ in ['PRODUCT', 'ORG', 'LANGUAGE']:
+                jd_skills.add(ent.text.lower())
 
-    for chunk in doc.noun_chunks:
-        ct = chunk.text.lower().strip()
-        if 1 <= len(ct.split()) <= 4:
-            jd_skills.add(ct)
+        for chunk in doc.noun_chunks:
+            ct = chunk.text.lower().strip()
+            if 1 <= len(ct.split()) <= 4:
+                jd_skills.add(ct)
+    else:
+        # Simple regex extraction fallback when spaCy is unavailable
+        import re
+        words = re.findall(r'\b[A-Za-z0-9+#.-]{2,30}\b', jd_text[:5000])
+        jd_skills = {w.lower() for w in words if len(w) > 2}
 
     resume_normalized = {normalize_skill(s) for s in resume_skills}
 
